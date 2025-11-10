@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    // ... other options
+    "paths": {
+      "@/*": ["./src/*"],
+      // Add other path mappings as needed
+      "~/*": ["./*"],
+      "components/*": ["./src/components/*"]
+    }
+  }
+}
