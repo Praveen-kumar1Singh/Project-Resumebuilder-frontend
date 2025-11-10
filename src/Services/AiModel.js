@@ -4,9 +4,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = GEMENI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// ✅ Use the correct model that actually exists
+// ✅ USE THE CORRECT MODEL THAT ACTUALLY EXISTS
 const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash", // This model exists and works
+  model: "gemini-1.5-flash", // This is the correct model name
 });
 
 const generationConfig = {
@@ -16,22 +16,26 @@ const generationConfig = {
   maxOutputTokens: 8192,
 };
 
-// ✅ Simple function to generate content (instead of chat session)
-export const generateAISummary = async (prompt) => {
+// ✅ SIMPLE FUNCTION THAT WORKS
+export const generateAISummary = async (resumeData) => {
   try {
+    const { position, skills, experience } = resumeData;
+    
+    const prompt = `Generate a professional resume summary for a ${position} with these skills: ${skills}. Experience: ${experience}. Return only the summary text without any explanations.`;
+    
+    console.log("Sending prompt to Gemini AI...");
+    
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    return response.text();
+    const summary = response.text();
+    
+    console.log("AI Summary generated successfully");
+    return summary;
+    
   } catch (error) {
     console.error("Gemini AI Error:", error);
-    throw new Error("Failed to generate AI summary: " + error.message);
+    throw new Error("AI service is currently unavailable. Please try again later.");
   }
 };
 
-// ✅ Alternative: If you need chat functionality
-export const createChatSession = () => {
-  return model.startChat({
-    generationConfig,
-    history: [],
-  });
-};
+// ✅ REMOVE AIChatSession - use the function above instead
