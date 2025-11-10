@@ -7,7 +7,7 @@ const apiKey = GEMENI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash",
+  model: "gemini-pro",
 });
 
 const generationConfig = {
