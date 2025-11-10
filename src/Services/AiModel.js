@@ -4,33 +4,32 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = GEMENI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// ✅ USE THE CORRECT MODEL THAT ACTUALLY EXISTS
+// ✅ CORRECT MODEL THAT WORKS
 const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash", // This is the correct model name
+  model: "gemini-1.5-flash",
+  generationConfig: {
+    temperature: 0.7,
+    topP: 0.95,
+    topK: 64,
+    maxOutputTokens: 1024,
+  }
 });
-
-const generationConfig = {
-  temperature: 1,
-  topP: 0.95,
-  topK: 64,
-  maxOutputTokens: 8192,
-};
 
 // ✅ SIMPLE FUNCTION THAT WORKS
 export const generateAISummary = async (resumeData) => {
   try {
     const { position, skills, experience } = resumeData;
     
-    const prompt = `Generate a professional resume summary for a ${position} with these skills: ${skills}. Experience: ${experience}. Return only the summary text without any explanations.`;
+    const prompt = `Create 3 professional resume summaries for a ${position} with skills in ${skills}. Create one for Senior level, one for Mid-level, and one for Fresher level. Each summary should be 3-4 lines. Return as JSON array with objects containing "experience_level" and "summary" fields.`;
     
-    console.log("Sending prompt to Gemini AI...");
+    console.log("Sending to Gemini AI:", prompt);
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const summary = response.text();
+    const text = response.text();
     
-    console.log("AI Summary generated successfully");
-    return summary;
+    console.log("AI Response:", text);
+    return text;
     
   } catch (error) {
     console.error("Gemini AI Error:", error);
@@ -38,4 +37,4 @@ export const generateAISummary = async (resumeData) => {
   }
 };
 
-// ✅ REMOVE AIChatSession - use the function above instead
+// ✅ REMOVE AIChatSession export - we don't need it anymore
