@@ -6,16 +6,14 @@ import { useDispatch } from "react-redux";
 import { addResumeData } from "@/features/resume/resumeFeatures";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { AIChatSession } from "@/Services/AiModel";
+import { generateAISummary } from "@/Services/AiModel"; // ✅ Changed import
 import { updateThisResume } from "@/Services/resumeAPI";
 
-const prompt =
-  "Job Title: {jobTitle} , Depends on job title give me list of  summery for 3 experience level, Mid Level and Freasher level in 3 -4 lines in array format, With summery and experience_level Field in JSON Format";
 function Summary({ resumeInfo, enanbledNext, enanbledPrev }) {
   const dispatch = useDispatch();
-  const [loading, setLoading] = useState(false); // Declare the undeclared variable using useState
-  const [summary, setSummary] = useState(resumeInfo?.summary || ""); // Declare the undeclared variable using useState
-  const [aiGeneratedSummeryList, setAiGenerateSummeryList] = useState(null); // Declare the undeclared variable using useState
+  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState(resumeInfo?.summary || "");
+  const [aiGeneratedSummeryList, setAiGenerateSummeryList] = useState(null);
   const { resume_id } = useParams();
 
   const handleInputChange = (e) => {
@@ -51,7 +49,7 @@ function Summary({ resumeInfo, enanbledNext, enanbledPrev }) {
           setLoading(false);
         });
     }
-  }; // Declare the undeclared variable using useState
+  };
 
   const setSummery = (summary) => {
     dispatch(
@@ -63,23 +61,48 @@ function Summary({ resumeInfo, enanbledNext, enanbledPrev }) {
     setSummary(summary);
   };
 
+  // ✅ FIXED AI GENERATION FUNCTION
   const GenerateSummeryFromAI = async () => {
     setLoading(true);
     console.log("Generate Summery From AI for", resumeInfo?.jobTitle);
+    
     if (!resumeInfo?.jobTitle) {
       toast("Please Add Job Title");
       setLoading(false);
       return;
     }
-    const PROMPT = prompt.replace("{jobTitle}", resumeInfo?.jobTitle);
+
     try {
-      const result = await AIChatSession.sendMessage(PROMPT);
-      console.log(JSON.parse(result.response.text()));
-      setAiGenerateSummeryList(JSON.parse(result.response.text()));
-      toast("Summery Generated", "success");
+      // ✅ Use the new function instead of AIChatSession
+      const prompt = `Job Title: ${resumeInfo.jobTitle}. Generate 3 professional resume summaries for different experience levels (Senior, Mid-Level, Fresher) in 3-4 lines each. Return as JSON array with summary and experience_level fields.`;
+      
+      const aiResponse = await generateAISummary({
+        position: resumeInfo.jobTitle,
+        skills: resumeInfo.skills || "Not specified",
+        experience: "Various levels"
+      });
+
+      // Try to parse JSON response
+      try {
+        const parsedData = JSON.parse(aiResponse);
+        setAiGenerateSummeryList(parsedData);
+        toast("Summary Generated", "success");
+      } catch (parseError) {
+        // If not JSON, create a simple array with the response
+        console.log("AI returned text, not JSON. Creating manual structure.");
+        const fallbackData = [
+          {
+            experience_level: "Professional",
+            summary: aiResponse
+          }
+        ];
+        setAiGenerateSummeryList(fallbackData);
+        toast("Summary Generated", "success");
+      }
+      
     } catch (error) {
-      console.log(error);
-      toast("${error.message}", `${error.message}`);
+      console.log("AI Generation Error:", error);
+      toast(error.message || "Failed to generate summary");
     } finally {
       setLoading(false);
     }
@@ -93,23 +116,31 @@ function Summary({ resumeInfo, enanbledNext, enanbledPrev }) {
 
         <form className="mt-7" onSubmit={onSave}>
           <div className="flex justify-between items-end">
-            <label>Add Summery</label>
+            <label>Add Summary</label>
             <Button
               variant="outline"
-              onClick={() => GenerateSummeryFromAI()}
+              onClick={GenerateSummeryFromAI}
               type="button"
               size="sm"
               className="border-primary text-primary flex gap-2"
+              disabled={loading}
             >
-              <Sparkles className="h-4 w-4" /> Generate from AI
+              {loading ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              Generate from AI
             </Button>
           </div>
           <Textarea
             name="summary"
             className="mt-5"
             required
-            value={summary ? summary : resumeInfo?.summary}
+            value={summary}
             onChange={handleInputChange}
+            placeholder="Enter your professional summary..."
+            rows={4}
           />
           <div className="mt-2 flex justify-end">
             <Button type="submit" disabled={loading}>
@@ -121,8 +152,8 @@ function Summary({ resumeInfo, enanbledNext, enanbledPrev }) {
 
       {aiGeneratedSummeryList && (
         <div className="my-5">
-          <h2 className="font-bold text-lg">Suggestions</h2>
-          {aiGeneratedSummeryList?.map((item, index) => (
+          <h2 className="font-bold text-lg">AI Suggestions</h2>
+          {aiGeneratedSummeryList.map((item, index) => (
             <div
               key={index}
               onClick={() => {
@@ -130,12 +161,12 @@ function Summary({ resumeInfo, enanbledNext, enanbledPrev }) {
                 enanbledPrev(false);
                 setSummery(item?.summary);
               }}
-              className="p-5 shadow-lg my-4 rounded-lg cursor-pointer"
+              className="p-5 shadow-lg my-4 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors border"
             >
               <h2 className="font-bold my-1 text-primary">
-                Level: {item?.experience_level}
+                {item?.experience_level || "Professional Summary"}
               </h2>
-              <p>{item?.summary}</p>
+              <p className="text-gray-700">{item?.summary}</p>
             </div>
           ))}
         </div>
